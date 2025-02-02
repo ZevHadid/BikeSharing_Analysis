@@ -17,7 +17,6 @@ ax.set_ylabel("Jumlah Penyewaan Sepeda")
 ax.set_title("Hubungan Suhu dan Jumlah Penyewaan Sepeda")
 st.pyplot(fig)
 
-# Heatmap korelasi
 st.subheader("Heatmap Korelasi")
 fig, ax = plt.subplots()
 corr = day_df[['temp', 'cnt']].corr()
