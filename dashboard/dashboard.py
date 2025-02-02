@@ -2,66 +2,48 @@ import streamlit as st
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
 
-df = pd.read_csv("dashboard/main_data.csv")
-st.sidebar.title("Input Variabel")
+day_df = pd.read_csv("dashboard/main_data.csv")
 
-nama_kolom = [kol for kol in df.columns if df[kol].dtype in ["int64", "float64"]]
+st.title("Analisis Penyewaan Sepeda")
 
-kolom1 = st.sidebar.selectbox(
-    "variabel 1",
-    nama_kolom,
-    index=8
-)
+st.header("1. Pengaruh Suhu terhadap Penyewaan Sepeda")
 
-kolom2 = st.sidebar.selectbox(
-    "variabel 2",
-    nama_kolom,
-    index=14
-)
+fig, ax = plt.subplots()
+sns.regplot(x=day_df['temp'], y=day_df['cnt'], ax=ax, scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
+ax.set_xlabel("Temperature (Normalized)")
+ax.set_ylabel("Jumlah Penyewaan Sepeda")
+ax.set_title("Hubungan Suhu dan Jumlah Penyewaan Sepeda")
+st.pyplot(fig)
 
-var1 = df[kolom1]
-var2 = df[kolom2]
+# Heatmap korelasi
+st.subheader("Heatmap Korelasi")
+fig, ax = plt.subplots()
+corr = day_df[['temp', 'cnt']].corr()
+sns.heatmap(corr, annot=True, cmap="coolwarm", ax=ax)
+st.pyplot(fig)
 
-st.sidebar.write(f"Korelasi antara `{kolom1}` dan `{kolom2}`: `{var1.corr(var2)}`")
-st.sidebar.write(f"covariance antara `{kolom1}` dan `{kolom2}`: `{var1.cov(var2)}`")
+st.write("Dari scatter plot dan heatmap, kita bisa melihat bahwa ada korelasi positif antara suhu dan jumlah penyewaan sepeda. Ini berarti saat suhu meningkat, jumlah penyewaan sepeda juga cenderung meningkat.")
 
-st.title("Dashboard Penyewaan Sepeda")
-st.write("## Tabel main_data.csv:")
-vis_tabel = st.radio(
-    "Visualisasi Tabel:",
-    ["Semua Data", "groupby", "describe", "info"]
-)
+st.header("2. Pengaruh Hari Kerja terhadap Penyewaan Sepeda")
 
-if vis_tabel == "Semua Data":
-    st.write(df)
+fig, ax = plt.subplots()
+avg_cnt_by_workingday = day_df.groupby("workingday")["cnt"].mean()
+sns.barplot(x=avg_cnt_by_workingday.index, y=avg_cnt_by_workingday.values, ax=ax)
+ax.set_xticks([0, 1])
+ax.set_xticklabels(["Libur", "Hari Kerja"])
+ax.set_ylabel("Rata-rata Penyewaan Sepeda")
+ax.set_title("Perbandingan Penyewaan Sepeda pada Hari Kerja vs Hari Libur")
+st.pyplot(fig)
 
-elif (vis_tabel == "groupby"):
-    st.write(df.groupby(kolom1).agg({kolom2: ["sum", "mean", "count", "min", "max"]}))
+st.subheader("Perbandingan Registered vs Casual")
+fig, ax = plt.subplots()
+day_grouped = day_df.groupby("workingday")[["registered", "casual"]].mean()
+day_grouped.plot(kind='bar', stacked=True, ax=ax)
+ax.set_xticklabels(["Libur", "Hari Kerja"], rotation=0)
+ax.set_ylabel("Rata-rata Penyewaan")
+ax.set_title("Registered vs Casual pada Hari Kerja dan Hari Libur")
+st.pyplot(fig)
 
-elif (vis_tabel == "describe"):
-    st.write(df.describe())
-
-else:
-    st.write(
-        pd.DataFrame({
-            "Nama Kolom": df.columns,
-            "Jumlah Non-Null": df.count().values,
-            "Tipe Data": df.dtypes.values
-        })
-    )
-
-plot = ""
-st.write(f"## {"Scatter Plot" if plot == "" else plot} {kolom1} dan {kolom2}")
-plot = st.radio("Tipe Plot:", ["Scatter Plot", "Bar Plot"])
-
-if plot == "Scatter Plot":
-    fig, ax = plt.subplots()
-    sns.scatterplot(x=var1, y=var2, ax=ax)
-    st.pyplot(fig)
-
-elif plot == "Bar Plot":
-    st.write(f"## Bar Plot {kolom1} dan {kolom2}")
-    fig, ax = plt.subplots()
-    sns.barplot(x=kolom1, y=kolom2, data=df, ax=ax)
-    st.pyplot(fig)
+st.write("Dari grafik di atas, terlihat bahwa jumlah pengguna registered meningkat signifikan pada hari kerja, sedangkan jumlah casual menurun. Ini menunjukkan bahwa pada hari kerja, kebanyakan pengguna adalah pelanggan tetap (commuters), sementara pada hari libur lebih banyak orang menyewa sepeda untuk rekreasi.")
